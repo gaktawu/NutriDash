@@ -344,12 +344,12 @@ PLOTLY_LAYOUT = dict(
     xaxis=dict(
         automargin=True, 
         tickfont=dict(color=COLORS["text"]), 
-        titlefont=dict(color=COLORS["text"])
+        title=dict(font=dict(color=COLORS["text"]))
     ),
     yaxis=dict(
         automargin=True, 
         tickfont=dict(color=COLORS["text"]), 
-        titlefont=dict(color=COLORS["text"])
+        title=dict(font=dict(color=COLORS["text"]))
     ),
     legend=dict(
         bgcolor="rgba(255,255,255,0.9)",
