@@ -147,20 +147,16 @@ PLOTLY_LAYOUT = dict(
 # =============================================================================
 @st.cache_data(show_spinner="Memuat dan membersihkan dataset nutrisi secara dinamis...")
 def load_and_preprocess_data(file_path):
-    # Baca Data
     df_raw = pd.read_csv(file_path)
     len_raw = len(df_raw)
     
-    # 1. Missing Values
     df = df_raw.dropna().copy()
     missing_dropped = len_raw - len(df)
     
-    # 2. Duplikat
     len_before = len(df)
     df = df.drop_duplicates().reset_index(drop=True)
     duplicates_dropped = len_before - len(df)
 
-    # Pastikan struktur kolom esensial ada
     if "keyword" not in df.columns:
         df["keyword"] = "Umum"
 
@@ -175,30 +171,24 @@ def load_and_preprocess_data(file_path):
         if c not in df.columns:
             df[c] = 0.0
 
-    # 3. Pembersihan Data Tidak Logis & Nilai Negatif
     len_before = len(df)
     kondisi_tidak_logis = ((df["kalori"] > 20) & (df["lemak"] == 0) & (df["karbo"] == 0) & (df["protein"] == 0))
     has_negative = (df[numeric_cols] < 0).any(axis=1)
     df = df.loc[~(kondisi_tidak_logis | has_negative)].reset_index(drop=True)
     illogical_dropped = len_before - len(df)
 
-    # 4. Validasi Silang Hukum Atwater (Kalori vs Estimasi Makro)
     len_before = len(df)
     df["kalori_estimasi"] = 4 * df["protein"] + 4 * df["karbo"] + 9 * df["lemak"]
     
-    # Jika kalori = 0 tapi ada makronutrien → HAPUS
     kasus_kalori_nol = (df["kalori"] == 0) & (df["kalori_estimasi"] > 2)
     df = df[~kasus_kalori_nol].copy()
     
-    # Hitung selisih untuk membuang anomali umum lainnya
     df["selisih_kalori"] = df["kalori"] - df["kalori_estimasi"]
     df["selisih_persen"] = np.where(df["kalori_estimasi"] > 0, (df["selisih_kalori"] / df["kalori_estimasi"]) * 100, 0)
     anomali_umum = (df["selisih_persen"].abs() > 20) & (df["selisih_kalori"].abs() > 15)
     df = df.loc[~anomali_umum].reset_index(drop=True)
-    
     atwater_dropped = len_before - len(df)
     
-    # 5. Deteksi Mislabel (Kesesuaian Teks & Euclidean Distance / Z-Score Nutrisi)
     len_before = len(df)
     STOPWORDS = {"di", "dalam", "dengan", "yang", "dan", "atau", "tanpa", "ke", "dari", "untuk", "per", "tidak", "sama"}
     
@@ -219,7 +209,7 @@ def load_and_preprocess_data(file_path):
     df["cocok_teks"] = df.apply(lambda r: cek_kecocokan_teks(r["display_name"], r["keyword"]), axis=1)
 
     fitur_nutrisi = ["kalori", "lemak", "karbo", "protein"]
-    std_dev = df[fitur_nutrisi].std().fillna(1).replace(0, 1) # Mencegah NaN division
+    std_dev = df[fitur_nutrisi].std().fillna(1).replace(0, 1)
     z_score = (df[fitur_nutrisi] - df[fitur_nutrisi].mean()) / std_dev
     profil_median_kategori = z_score.join(df["keyword"]).groupby("keyword")[fitur_nutrisi].median()
     
@@ -233,19 +223,15 @@ def load_and_preprocess_data(file_path):
     df["jarak_nutrisi"] = [hitung_jarak_nutrisi(i) for i in df.index]
     ambang_jarak = df["jarak_nutrisi"].quantile(0.90)
     
-    # Buang mislabel yang keyakinannya tinggi
     mislabel_keyakinan_tinggi = (~df["cocok_teks"]) & (df["jarak_nutrisi"] > ambang_jarak)
     df = df.loc[~mislabel_keyakinan_tinggi].reset_index(drop=True)
     mislabel_dropped = len_before - len(df)
     
-    # Pembersihan Kolom Temporer
     df = df.drop(columns=["cocok_teks", "jarak_nutrisi", "kalori_estimasi", "selisih_kalori", "selisih_persen"], errors='ignore')
 
-    # 6. Pembuatan Fitur Turunan
     df["protein_per_kalori"] = df["protein"] / (df["kalori"] + 1)
     df["protein_pct"] = (df["protein"] * 4) / (df["kalori"] + 1) * 100
     
-    # Rekapitulasi Pembersihan Data Dinamis
     stats = {
         "raw": len_raw,
         "missing": missing_dropped,
@@ -469,14 +455,18 @@ with tab_overview:
 
         with col_right:
             render_section_header("🏆", "Top 10 Protein Efficiency")
-            render_rank_list(filtered_df.nlargest(10, "protein_per_kalori"), "protein_per_kalori", "g/kcal", top_n=10, unit=" g/kcal")
+            # PERBAIKAN: Syarat makanan harus punya nutrisi nyata (bukan minuman/bumbu) untuk masuk Top 10
+            eff_df = filtered_df[(filtered_df["kalori"] >= 50) & (filtered_df["protein"] >= 5)]
+            render_rank_list(eff_df.nlargest(10, "protein_per_kalori"), "protein_per_kalori", "g/kcal", top_n=10, unit=" g/kcal")
 
         st.markdown("<br>", unsafe_allow_html=True)
         render_section_header("🍽️", "Rekomendasi Berdasarkan Tujuan")
         goal_col1, goal_col2, goal_col3 = st.columns(3)
         with goal_col1:
             st.markdown("#### 🥗 Cutting / Defisit Kalori")
-            render_food_grid(filtered_df[(filtered_df["kalori"] < 200) & (filtered_df["protein_per_kalori"] > 0.06)].nlargest(6, "protein_per_kalori"), limit=6)
+            # PERBAIKAN: Syarat makanan harus punya nutrisi nyata agar kopi 0 kalori tidak merusak list
+            cutting_df = filtered_df[(filtered_df["kalori"].between(50, 250)) & (filtered_df["protein"] >= 5) & (filtered_df["protein_per_kalori"] > 0.05)]
+            render_food_grid(cutting_df.nlargest(6, "protein_per_kalori"), limit=6)
         with goal_col2:
             st.markdown("#### 💪 Bulking / Surplus Kalori")
             render_food_grid(filtered_df[(filtered_df["kalori"] > 300) & (filtered_df["protein"] > 15)].nlargest(6, "protein"), limit=6)
