@@ -517,11 +517,22 @@ def render_data_table(df, cols, rename_map=None, limit=100):
     )
     st.markdown(table_html, unsafe_allow_html=True)
 
-path_file = "Data-Nutrisi.csv"
+with st.sidebar:
+    st.markdown("##### 📁 Upload Dataset")
+    uploaded_file = st.file_uploader("Upload file CSV nutrisi Anda", type=["csv"])
+    st.markdown("---")
 
-if not os.path.exists(path_file):
-    st.error("File `Data-Nutrisi.csv` tidak ditemukan. Pastikan file berada di direktori yang sama dengan app.py")
-    st.stop()
+# Logika pemilihan dataset
+if uploaded_file is not None:
+    # Jika user mengupload file, gunakan file tersebut
+    df_raw, df = load_and_preprocess_data(uploaded_file)
+else:
+    # Jika tidak ada file yang diupload, gunakan file default
+    path_file = "Data-Nutrisi.csv"
+    if not os.path.exists(path_file):
+        st.error("File default `Data-Nutrisi.csv` tidak ditemukan. Silakan upload dataset Anda melalui sidebar.")
+        st.stop()
+    df_raw, df = load_and_preprocess_data(path_file)
 
 df_raw, df = load_and_preprocess_data(path_file)
 model, feature_cols, X_test, y_test, y_pred, r2, mae, rmse, df_enc = train_model(df)
