@@ -1,9 +1,3 @@
-# =============================================================================
-# NUTRIDASH - Indonesian Food Nutrition Analytics Dashboard
-# Professional-grade Streamlit dashboard for nutrition data analysis
-# Author: NutriAnalytics Team
-# =============================================================================
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -15,9 +9,6 @@ from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 import os
 import io
 
-# =============================================================================
-# PAGE CONFIGURATION
-# =============================================================================
 st.set_page_config(
     page_title="NutriDash - Indonesian Nutrition Analytics",
     page_icon="🥗",
@@ -25,9 +16,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# =============================================================================
-# DESIGN SYSTEM - Warm Professional Palette
-# =============================================================================
 COLORS = {
     "navy": "#1a2332",
     "navy_light": "#243447",
@@ -54,9 +42,6 @@ CATEGORY_PALETTE = [
     "#7f8c8d", "#27ae60", "#8e44ad", "#c9a84c", "#2980b9",
 ]
 
-# =============================================================================
-# CUSTOM CSS - Professional Typography & Layout
-# =============================================================================
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700;800&display=swap');
@@ -69,12 +54,10 @@ st.markdown(f"""
         background-color: {COLORS['cream']} !important;
     }}
 
-    /* Kunci Kontras Teks Utama Halaman Agar Tidak Mengikuti Dark Mode Sistem */
     [data-testid="stMain"], [data-testid="stMain"] p, [data-testid="stMain"] span, [data-testid="stMain"] label, [data-testid="stMain"] h1, [data-testid="stMain"] h2, [data-testid="stMain"] h3 {{
         color: {COLORS['text']} !important;
     }}
 
-    /* Sidebar */
     [data-testid="stSidebar"] {{
         background-color: {COLORS['sidebar_bg']} !important;
         border-right: none;
@@ -83,7 +66,6 @@ st.markdown(f"""
         color: {COLORS['white']} !important;
     }}
 
-    /* Typography */
     h1 {{
         font-weight: 800 !important;
         font-size: 2rem !important;
@@ -104,7 +86,6 @@ st.markdown(f"""
         color: {COLORS['text']} !important;
     }}
 
-    /* KPI Cards */
     .kpi-container {{
         background: {COLORS['card_bg']};
         border: 1px solid {COLORS['border']};
@@ -139,7 +120,6 @@ st.markdown(f"""
     .kpi-delta.positive {{ color: {COLORS['success']} !important; }}
     .kpi-delta.negative {{ color: {COLORS['danger']} !important; }}
 
-    /* Section Cards */
     .section-card {{
         background: {COLORS['card_bg']};
         border: 1px solid {COLORS['border']};
@@ -149,7 +129,6 @@ st.markdown(f"""
         box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }}
 
-    /* Tables */
     .data-table {{
         width: 100%;
         border-collapse: collapse;
@@ -176,7 +155,6 @@ st.markdown(f"""
         background-color: {COLORS['cream_dark']};
     }}
 
-    /* Food Cards */
     .food-grid {{
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -229,7 +207,6 @@ st.markdown(f"""
         color: {COLORS['navy']};
     }}
 
-    /* Rank List */
     .rank-item {{
         display: flex;
         align-items: center;
@@ -270,7 +247,6 @@ st.markdown(f"""
         text-align: right;
     }}
 
-    /* Prediction Result Box */
     .prediction-box {{
         background: linear-gradient(135deg, {COLORS['navy']} 0%, {COLORS['navy_light']} 100%);
         border-radius: 12px;
@@ -286,7 +262,6 @@ st.markdown(f"""
         line-height: 1;
     }}
 
-    /* Goal Badges */
     .goal-badge {{
         display: inline-flex;
         align-items: center;
@@ -302,17 +277,25 @@ st.markdown(f"""
     .goal-bulking {{ background: #fff3e0; color: #e67e22 !important; }}
     .goal-balanced {{ background: #e3f2fd; color: #2980b9 !important; }}
 
-    /* Streamlit Components Custom Overrides */
-    .stButton > button {{
+    [data-testid="stMain"] .stButton > button {{
         background-color: {COLORS['navy']} !important;
+        border-radius: 8px !important;
+        border: none !important;
+    }}
+    [data-testid="stMain"] .stButton > button, 
+    [data-testid="stMain"] .stButton > button p, 
+    [data-testid="stMain"] .stButton > button span {{
         color: {COLORS['white']} !important;
         font-weight: 600 !important;
-        border-radius: 8px !important;
     }}
-    .stButton > button:hover {{
+    [data-testid="stMain"] .stButton > button:hover {{
         background-color: {COLORS['gold']} !important;
+    }}
+    [data-testid="stMain"] .stButton > button:hover p,
+    [data-testid="stMain"] .stButton > button:hover span {{
         color: {COLORS['navy']} !important;
     }}
+
     div[data-testid="stTabs"] button {{
         color: {COLORS['text_light']} !important;
     }}
@@ -353,25 +336,30 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# =============================================================================
-# PLOTLY DEFAULT LAYOUT
-# =============================================================================
 PLOTLY_LAYOUT = dict(
     font=dict(family="Inter, sans-serif", color=COLORS["text"], size=12),
-    paper_bgcolor=COLORS["white"],
-    plot_bgcolor=COLORS["cream"],
-    margin=dict(t=50, l=10, r=10, b=10),
+    paper_bgcolor=COLORS["white"], 
+    plot_bgcolor=COLORS["white"], 
+    margin=dict(t=50, r=20, b=40), 
+    xaxis=dict(
+        automargin=True, 
+        tickfont=dict(color=COLORS["text"]), 
+        titlefont=dict(color=COLORS["text"])
+    ),
+    yaxis=dict(
+        automargin=True, 
+        tickfont=dict(color=COLORS["text"]), 
+        titlefont=dict(color=COLORS["text"])
+    ),
     legend=dict(
         bgcolor="rgba(255,255,255,0.9)",
         bordercolor=COLORS["border"],
         borderwidth=1,
+        font=dict(color=COLORS["text"])
     ),
     colorway=CATEGORY_PALETTE,
 )
 
-# =============================================================================
-# DATA LOADING & PREPROCESSING
-# =============================================================================
 @st.cache_data(show_spinner="Memuat dataset nutrisi...")
 def load_and_preprocess_data(file_path):
     df_raw = pd.read_csv(file_path)
@@ -438,9 +426,6 @@ def train_model(df):
 
     return model, X.columns, X_test, y_test, y_pred, r2, mae, rmse, df_enc
 
-# =============================================================================
-# HELPER FUNCTIONS - Rapat Tanpa Indentasi Spasi/Tab Kiri (Anti-Bocor Code)
-# =============================================================================
 def render_kpi_card(label, value, delta=None, delta_pos=True):
     delta_html = ""
     if delta:
@@ -532,9 +517,6 @@ def render_data_table(df, cols, rename_map=None, limit=100):
     )
     st.markdown(table_html, unsafe_allow_html=True)
 
-# =============================================================================
-# MAIN APPLICATION
-# =============================================================================
 path_file = "Data-Nutrisi.csv"
 
 if not os.path.exists(path_file):
@@ -544,7 +526,6 @@ if not os.path.exists(path_file):
 df_raw, df = load_and_preprocess_data(path_file)
 model, feature_cols, X_test, y_test, y_pred, r2, mae, rmse, df_enc = train_model(df)
 
-# ---- Sidebar ----
 with st.sidebar:
     st.markdown(f"""
     <div style="text-align:center; margin-bottom:2rem;">
@@ -576,7 +557,6 @@ with st.sidebar:
         use_container_width=True,
     )
 
-# ---- Apply Filters ----
 filtered_df = df.copy()
 if selected_categories:
     filtered_df = filtered_df[filtered_df["keyword"].isin(selected_categories)]
@@ -586,7 +566,6 @@ filtered_df = filtered_df[
     (filtered_df["protein"] >= protein_min)
 ].reset_index(drop=True)
 
-# ---- Header ----
 col_title, col_info = st.columns([3, 1])
 with col_title:
     st.markdown("<h1>Indonesian Food Nutrition Analytics</h1>", unsafe_allow_html=True)
@@ -607,7 +586,6 @@ with col_info:
 
 st.markdown("<hr style='border:none; height:1px; background:#e0dcd3; margin:1rem 0;'>", unsafe_allow_html=True)
 
-# ---- KPI Section ----
 if not filtered_df.empty:
     kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
     with kpi1: render_kpi_card("Rata-rata Protein", f"{filtered_df['protein'].mean():.1f}g")
@@ -616,15 +594,11 @@ if not filtered_df.empty:
     with kpi4: render_kpi_card("High Protein %", f"{(filtered_df['protein_per_kalori'] > 0.05).mean() * 100:.1f}%")
     with kpi5: render_kpi_card("Kategori", f"{filtered_df['keyword'].nunique()}")
 
-# ---- Main Tabs ----
 tab_overview, tab_explorer, tab_viz, tab_model, tab_predict, tab_meal, tab_compare = st.tabs([
     "📊 Overview", "🔍 Data Explorer", "📈 Visualisasi", "🧠 Model & Koefisien",
     "🔮 Prediksi Protein", "🍽️ Meal Planner", "⚖️ Perbandingan"
 ])
 
-# =============================================================================
-# TAB 1: OVERVIEW
-# =============================================================================
 with tab_overview:
     if filtered_df.empty:
         st.warning("Tidak ada data yang cocok dengan filter. Coba sesuaikan filter di sidebar.")
@@ -664,9 +638,6 @@ with tab_overview:
             st.markdown("#### ⚖️ Balanced / Maintenance")
             render_food_grid(filtered_df[(filtered_df["kalori"].between(200, 350)) & (filtered_df["protein"].between(8, 25))].nlargest(6, "protein_per_kalori"), limit=6)
 
-# =============================================================================
-# TAB 2: DATA EXPLORER
-# =============================================================================
 with tab_explorer:
     col_search, col_view = st.columns([3, 1])
     with col_search:
@@ -689,9 +660,6 @@ with tab_explorer:
             limit=50,
         )
 
-# =============================================================================
-# TAB 3: VISUALISASI
-# =============================================================================
 with tab_viz:
     viz1, viz2 = st.columns(2)
     with viz1:
@@ -729,9 +697,6 @@ with tab_viz:
             )
             st.plotly_chart(fig, use_container_width=True, theme=None)
 
-# =============================================================================
-# TAB 4: MODEL PERFORMANCE
-# =============================================================================
 with tab_model:
     col_m1, col_m2, col_m3 = st.columns(3)
     with col_m1: render_kpi_card("R² Score", f"{r2:.4f}")
@@ -762,12 +727,15 @@ with tab_model:
         top_bottom = pd.concat([cat_coef.head(10), cat_coef.tail(10)])
 
         fig = go.Figure(go.Bar(y=top_bottom["Kategori"], x=top_bottom["Koefisien"], orientation='h', marker_color=[COLORS['success'] if v >= 0 else COLORS['danger'] for v in top_bottom["Koefisien"]]))
-        fig.update_layout(**PLOTLY_LAYOUT, title=dict(text="Bobot Kategori (Koefisien ML)", font=dict(color=COLORS["navy"], size=14)), height=400, yaxis=dict(categoryorder='total ascending'), xaxis_title="Koefisien (gram protein)")
+        fig.update_layout(
+            **PLOTLY_LAYOUT, 
+            title=dict(text="Bobot Kategori (Koefisien ML)", font=dict(color=COLORS["navy"], size=14)), 
+            height=400, 
+            yaxis=dict(categoryorder='total ascending', automargin=True, tickfont=dict(color=COLORS["text"])), 
+            xaxis_title="Koefisien (gram protein)"
+        )
         st.plotly_chart(fig, use_container_width=True, theme=None)
 
-# =============================================================================
-# TAB 5: PREDICTION
-# =============================================================================
 with tab_predict:
     col_input, col_result = st.columns([2, 1])
     with col_input:
@@ -805,9 +773,6 @@ with tab_predict:
             </div>
             """, unsafe_allow_html=True)
 
-# =============================================================================
-# TAB 6: MEAL PLANNER
-# =============================================================================
 with tab_meal:
     render_section_header("🍽️", "Meal Planner & Nutrition Calculator")
     st.markdown(f"""
@@ -841,9 +806,6 @@ with tab_meal:
     else:
         st.info("Pilih kategori makanan untuk mulai menyusun meal plan.")
 
-# =============================================================================
-# TAB 7: COMPARE
-# =============================================================================
 with tab_compare:
     render_section_header("⚖️", "Perbandingan Makanan")
     st.markdown(f"""
