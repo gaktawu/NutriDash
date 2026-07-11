@@ -614,8 +614,9 @@ with tab_overview:
             fig = go.Figure()
             fig.add_trace(go.Bar(y=cat_protein["keyword"], x=cat_protein["protein"], orientation='h', name='Avg Protein', marker_color=COLORS["gold"], text=cat_protein["protein"].round(1), textposition='outside'))
             fig.add_trace(go.Bar(y=cat_protein["keyword"], x=cat_protein["kalori"] / 20, orientation='h', name='Avg Calorie (/20)', marker_color=COLORS["navy"], opacity=0.6))
+            
             fig.update_layout(
-                **PLOTLY_LAYOUT,
+                PLOTLY_LAYOUT,
                 title=dict(text="Rata-rata Kandungan Gizi Makanan", font=dict(color=COLORS["navy"], size=14)),
                 barmode='group', xaxis_title="Nilai", yaxis_title="", showlegend=True, height=400
             )
@@ -675,8 +676,9 @@ with tab_viz:
                 marker=dict(size=8, line=dict(width=0.5, color='white')),
                 hovertemplate="<b>%{customdata[0]}</b><br>Kalori: %{customdata[1]:.0f} kcal<br>Protein: %{customdata[2]:.1f}g<br>Lemak: %{customdata[3]:.1f}g<br>Karbo: %{customdata[4]:.1f}g<extra></extra>"
             )
+            
             fig.update_layout(
-                **PLOTLY_LAYOUT,
+                PLOTLY_LAYOUT,
                 title=dict(text="Scatter Plot: Kalori vs Protein", font=dict(color=COLORS["navy"], size=14)),
                 height=420
             )
@@ -690,8 +692,9 @@ with tab_viz:
                 filtered_df[corr_cols].corr(), text_auto=".2f", aspect="auto",
                 color_continuous_scale=[COLORS["danger"], COLORS["cream"], COLORS["success"]], zmin=-1, zmax=1
             )
+            
             fig.update_layout(
-                **PLOTLY_LAYOUT,
+                PLOTLY_LAYOUT,
                 title=dict(text="Matriks Korelasi Kandungan Gizi Makanan", font=dict(color=COLORS["navy"], size=14)),
                 height=420
             )
@@ -715,7 +718,12 @@ with tab_model:
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode='markers', marker=dict(color=COLORS['gold'], size=7, opacity=0.6, line=dict(width=0.5, color='white')), name='Prediksi'))
         fig.add_trace(go.Scatter(x=[y_test.min(), y_test.max()], y=[y_test.min(), y_test.max()], mode='lines', line=dict(color=COLORS['danger'], dash='dash', width=2), name='Perfect Fit'))
-        fig.update_layout(**PLOTLY_LAYOUT, title=dict(text="Perbandingan Nilai Aktual vs Prediksi", font=dict(color=COLORS["navy"], size=14)), height=400, xaxis_title="Actual Protein (g)", yaxis_title="Predicted Protein (g)")
+        
+        fig.update_layout(
+            PLOTLY_LAYOUT,
+            title=dict(text="Perbandingan Nilai Aktual vs Prediksi", font=dict(color=COLORS["navy"], size=14)),
+            height=400, xaxis_title="Actual Protein (g)", yaxis_title="Predicted Protein (g)"
+        )
         st.plotly_chart(fig, use_container_width=True, theme=None)
 
     with col_chart2:
@@ -727,11 +735,12 @@ with tab_model:
         top_bottom = pd.concat([cat_coef.head(10), cat_coef.tail(10)])
 
         fig = go.Figure(go.Bar(y=top_bottom["Kategori"], x=top_bottom["Koefisien"], orientation='h', marker_color=[COLORS['success'] if v >= 0 else COLORS['danger'] for v in top_bottom["Koefisien"]]))
+        
         fig.update_layout(
-            **PLOTLY_LAYOUT, 
-            title=dict(text="Bobot Kategori (Koefisien ML)", font=dict(color=COLORS["navy"], size=14)), 
-            height=400, 
-            yaxis=dict(categoryorder='total ascending', automargin=True, tickfont=dict(color=COLORS["text"])), 
+            PLOTLY_LAYOUT,
+            title=dict(text="Bobot Kategori (Koefisien ML)", font=dict(color=COLORS["navy"], size=14)),
+            height=400,
+            yaxis_categoryorder='total ascending',
             xaxis_title="Koefisien (gram protein)"
         )
         st.plotly_chart(fig, use_container_width=True, theme=None)
@@ -801,7 +810,13 @@ with tab_meal:
             with mc4: render_kpi_card("Total Karbo", f"{totals['karbo']:.1f}g")
 
             fig = go.Figure(data=[go.Pie(labels=["Lemak", "Karbo", "Protein"], values=[totals["lemak"] * 9, totals["karbo"] * 4, totals["protein"] * 4], hole=0.55, marker_colors=[COLORS["gold"], COLORS["navy"], COLORS["success"]], textinfo='percent')])
-            fig.update_layout(**PLOTLY_LAYOUT, title=dict(text="Proporsi Kalori Makronutrien", font=dict(color=COLORS["navy"], size=14)), height=300, annotations=[dict(text="Macro<br>Split", x=0.5, y=0.5, font_size=14, showarrow=False, font=dict(family="Inter, sans-serif", color=COLORS["navy"], weight="bold"))])
+            
+            fig.update_layout(
+                PLOTLY_LAYOUT,
+                title=dict(text="Proporsi Kalori Makronutrien", font=dict(color=COLORS["navy"], size=14)),
+                height=300,
+                annotations=[dict(text="Macro<br>Split", x=0.5, y=0.5, font_size=14, showarrow=False, font=dict(family="Inter, sans-serif", color=COLORS["navy"], weight="bold"))]
+            )
             st.plotly_chart(fig, use_container_width=True, theme=None)
     else:
         st.info("Pilih kategori makanan untuk mulai menyusun meal plan.")
@@ -827,5 +842,11 @@ with tab_compare:
             fig = go.Figure()
             fig.add_trace(go.Scatterpolar(r=[d1[m] for m in comp_metrics] + [d1[comp_metrics[0]]], theta=comp_metrics + [comp_metrics[0]], fill='toself', name=d1['display_name'][:30], line=dict(color=COLORS['gold'], width=2)))
             fig.add_trace(go.Scatterpolar(r=[d2[m] for m in comp_metrics] + [d2[comp_metrics[0]]], theta=comp_metrics + [comp_metrics[0]], fill='toself', name=d2['display_name'][:30], line=dict(color=COLORS['navy'], width=2)))
-            fig.update_layout(polar=dict(radialaxis=dict(visible=True, gridcolor=COLORS['border'])), **PLOTLY_LAYOUT, title=dict(text="Perbandingan Profil Nutrisi Makro Makanan", font=dict(color=COLORS["navy"], size=14)), height=500)
+            
+            fig.update_layout(
+                PLOTLY_LAYOUT,
+                polar=dict(radialaxis=dict(visible=True, gridcolor=COLORS['border'])),
+                title=dict(text="Perbandingan Profil Nutrisi Makro Makanan", font=dict(color=COLORS["navy"], size=14)),
+                height=500
+            )
             st.plotly_chart(fig, use_container_width=True, theme=None)
