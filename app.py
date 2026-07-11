@@ -187,7 +187,7 @@ def load_and_preprocess_data(file_path):
     df["kalori_estimasi"] = 4 * df["protein"] + 4 * df["karbo"] + 9 * df["lemak"]
     
     # Jika kalori = 0 tapi ada makronutrien → HAPUS
-    kasus_kalori_nol = (df["kalori"] == 0) & (df["kalori_estimasi"] > 5)
+    kasus_kalori_nol = (df["kalori"] == 0) & (df["kalori_estimasi"] > 2)
     df = df[~kasus_kalori_nol].copy()
     
     # Hitung selisih untuk membuang anomali umum lainnya
