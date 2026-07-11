@@ -143,7 +143,7 @@ PLOTLY_LAYOUT = dict(
 )
 
 # =============================================================================
-# DINAMIC DATA LOADING & PREPROCESSING (Diimpor langsung dari logika Jupyter)
+# DINAMIC DATA LOADING & PREPROCESSING 
 # =============================================================================
 @st.cache_data(show_spinner="Memuat dan membersihkan dataset nutrisi secara dinamis...")
 def load_and_preprocess_data(file_path):
@@ -185,14 +185,17 @@ def load_and_preprocess_data(file_path):
     # 4. Validasi Silang Hukum Atwater (Kalori vs Estimasi Makro)
     len_before = len(df)
     df["kalori_estimasi"] = 4 * df["protein"] + 4 * df["karbo"] + 9 * df["lemak"]
+    
+    # Jika kalori = 0 tapi ada makronutrien → HAPUS
+    kasus_kalori_nol = (df["kalori"] == 0) & (df["kalori_estimasi"] > 5)
+    df = df[~kasus_kalori_nol].copy()
+    
+    # Hitung selisih untuk membuang anomali umum lainnya
     df["selisih_kalori"] = df["kalori"] - df["kalori_estimasi"]
     df["selisih_persen"] = np.where(df["kalori_estimasi"] > 0, (df["selisih_kalori"] / df["kalori_estimasi"]) * 100, 0)
+    anomali_umum = (df["selisih_persen"].abs() > 20) & (df["selisih_kalori"].abs() > 15)
+    df = df.loc[~anomali_umum].reset_index(drop=True)
     
-    kasus_kalori_nol = (df["kalori"] == 0) & (df["kalori_estimasi"] > 5)
-    anomali_umum = (~kasus_kalori_nol) & (df["selisih_persen"].abs() > 20) & (df["selisih_kalori"].abs() > 15)
-    anomali_gabungan = kasus_kalori_nol | anomali_umum
-    
-    df = df.loc[~anomali_gabungan].reset_index(drop=True)
     atwater_dropped = len_before - len(df)
     
     # 5. Deteksi Mislabel (Kesesuaian Teks & Euclidean Distance / Z-Score Nutrisi)
@@ -582,7 +585,12 @@ with tab_predict:
 
 with tab_meal:
     render_section_header("🍽️", "Meal Planner & Nutrition Calculator")
-    st.markdown(f'<p style="color:{COLORS["text_light"]}; font-size:0.9rem; margin-bottom:1rem;">Pilih makanan untuk menyusun kombinasi hidangan. Dashboard akan menghitung total nutrisi secara otomatis berdasarkan dataset terkini.</p>', unsafe_allow_html=True)
+    st.markdown(f"""
+    <p style="color:{COLORS['text_light']}; font-size:0.9rem; margin-bottom:1rem;">
+        Pilih makanan untuk menyusun kombinasi hidangan. Dashboard akan menghitung total nutrisi secara otomatis berdasarkan dataset terkini.<br><br>
+        <span style="color:{COLORS['warning']}; font-weight:600;">⚠️ Catatan:</span> Kandungan nutrisi bisa berbeda tergantung porsi makanan yang Anda konsumsi.
+    </p>
+    """, unsafe_allow_html=True)
 
     meal_categories = st.multiselect("Filter kategori untuk meal planner:", options=sorted(filtered_df["keyword"].unique()), default=sorted(filtered_df["keyword"].unique())[:5] if not filtered_df.empty else [], key="meal_cat")
 
